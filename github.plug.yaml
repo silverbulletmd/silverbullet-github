@@ -3,8 +3,12 @@ functions:
   queryEvents:
     path: ./github.ts:queryEvents
     events:
-      - query:gh-events
+      - query:gh-event
   queryPulls:
     path: ./github.ts:queryPulls
     events:
-      - query:gh-pulls
+      - query:gh-pull
+  queryNotifications:
+    path: ./github.ts:queryNotifications
+    events:
+      - query:gh-notification

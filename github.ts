@@ -1,108 +1,8 @@
-import { applyQuery, QueryProviderEvent } from "@silverbulletmd/plugs/query/engine";
-import { readPage } from "@silverbulletmd/plugos-silverbullet-syscall/space";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
-import { extractMeta } from "@silverbulletmd/plugs/query/data";
-
-type GithubEvent = {
-  id: string;
-  type: string;
-  actor: GithubUser;
-  repo: GithubRepo;
-  created_at: string;
-  payload: any;
-  org: GithubOrg;
-};
-
-type GithubUser = {
-  id: number;
-  login: string;
-  display_login: string;
-  url: string;
-};
-
-type GithubRepo = {
-  id: number;
-  name: string;
-  url: string;
-};
-
-type GithubOrg = {
-  id: number;
-  login: string;
-  url: string;
-};
-
-type ExposedEvent = {
-  id: string;
-  type: string;
-  username: string;
-  repo: string;
-};
-
-class GithubApi {
-  constructor(private token?: string) {}
-
-  async apiCall(url: string, options: any = {}): Promise<any> {
-    let res = await fetch(url, {
-      ...options,
-      headers: {
-        Authorization: this.token ? `token ${this.token}` : undefined,
-      },
-    });
-    if (res.status !== 200) {
-      throw new Error(await res.text());
-    }
-    return res.json();
-  }
-
-  async listEvents(username: string): Promise<GithubEvent[]> {
-    return this.apiCall(
-      `https://api.github.com/users/${username}/events?per_page=100`
-    );
-  }
-
-  async listPulls(
-    repo: string,
-    state: string = "all",
-    sort: string = "updated"
-  ): Promise<any[]> {
-    return this.apiCall(
-      `https://api.github.com/repos/${repo}/pulls?state=${state}&sort=${sort}&direction=desc&per_page=100`
-    );
-  }
-
-  static async fromConfig(): Promise<GithubApi> {
-    return new GithubApi((await getConfig()).token);
-  }
-}
-
-type GithubConfig = {
-  token?: string;
-};
-
-async function getConfig(): Promise<GithubConfig> {
-  try {
-    let { text } = await readPage("github-config");
-    let parsedContent = await parseMarkdown(text);
-    let pageMeta = await extractMeta(parsedContent);
-    return pageMeta as GithubConfig;
-  } catch (e) {
-    console.error("No github-config page found, using default config");
-    return {};
-  }
-}
-
-function mapEvent(event: GithubEvent): any {
-  // console.log("Event", event);
-  return {
-    ...event.payload,
-    id: event.id,
-    type: event.type,
-    username: event.actor.login,
-    repo: event.repo.name,
-    date: event.created_at.split("T")[0],
-  };
-}
+import {
+  applyQuery,
+  QueryProviderEvent,
+} from "@silverbulletmd/plugs/query/engine";
+import { GithubApi } from "./api";
 
 export async function queryEvents({
   query,
@@ -120,25 +20,18 @@ export async function queryEvents({
   } else {
     throw new Error(`Unsupported operator ${usernameFilter.op}`);
   }
-  let allEvents: GithubEvent[] = [];
+  let allEvents: any[] = [];
   for (let eventList of await Promise.all(
     usernames.map((username) => api.listEvents(username))
   )) {
     allEvents.push(...eventList);
   }
-  // console.log("Usernames", usernames, "Event list lenght", allEvents[0]);
-  return applyQuery(query, allEvents.map(mapEvent));
-}
+  query.filter.splice(query.filter.indexOf(usernameFilter), 1);
 
-function mapPull(pull: any): any {
-  // console.log("Pull", Object.keys(pull));
-  return {
-    ...pull,
-    username: pull.user.login,
-    // repo: pull.repo.name,
-    createdAt: pull.created_at.split("T")[0],
-    updatedAt: pull.updated_at.split("T")[0],
-  };
+  return applyQuery(
+    query,
+    allEvents.map((e) => flattenObject(e))
+  );
 }
 
 export async function queryPulls({
@@ -164,6 +57,36 @@ export async function queryPulls({
   )) {
     allPulls.push(...pullList);
   }
-  allPulls = applyQuery(query, allPulls.map(mapPull));
+  allPulls = applyQuery(
+    query,
+    allPulls.map((p) => flattenObject(p))
+  );
   return allPulls;
+}
+
+export async function queryNotifications({
+  query,
+}: QueryProviderEvent): Promise<any[]> {
+  let api = await GithubApi.fromConfig();
+  let allNotifications = await api.listNotifications();
+  allNotifications = applyQuery(
+    query,
+    allNotifications.map((n) => flattenObject(n))
+  );
+  return allNotifications;
+}
+
+function flattenObject(obj: any, prefix = ""): any {
+  let result: any = {};
+  for (let [key, value] of Object.entries(obj)) {
+    if (prefix) {
+      key = prefix + "_" + key;
+    }
+    if (value && typeof value === "object") {
+      result = { ...result, ...flattenObject(value, key) };
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
 }
