@@ -76,6 +76,32 @@ export async function queryNotifications({
   return allNotifications;
 }
 
+export async function querySearchIssues({
+  query,
+}: QueryProviderEvent): Promise<any[]> {
+  let api = await GithubApi.fromConfig();
+
+  let queryFilter = query.filter.find((f) => f.prop === "query");
+  if (!queryFilter) {
+    throw Error("No 'query' specified, this is mandatory");
+  }
+  query.filter = query.filter.filter((f) => f.prop !== "query");
+
+  let q = "";
+  if (queryFilter.op === "=") {
+    q = queryFilter.value;
+  } else {
+    throw new Error(`Unsupported operator ${queryFilter.op}`);
+  }
+  
+  const searchResult = await api.searchIssues(q);
+  const result = applyQuery(
+    query,
+    searchResult.items.map((n) => flattenObject(n))
+  );
+  return result;
+}
+
 function flattenObject(obj: any, prefix = ""): any {
   let result: any = {};
   for (let [key, value] of Object.entries(obj)) {
