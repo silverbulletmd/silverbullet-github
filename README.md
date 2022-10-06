@@ -21,10 +21,12 @@ To configure, add a `githubToken` key to your `SECRETS` page, this should be a [
 
 ## Query sources
 
-* `gh-event` required filters in the `where` clause:
+* `gh-event` List events of a user
     * `username`: the user whose events to query
-* `gh-pull`
+* `gh-pull`: List pull requests in a repository
     * `repo`: the repo to query PRs for
+* `gh-search-issue`: Search for issues and pull requests
+    * `query`: [the search query](https://docs.github.com/en/rest/search#search-issues-and-pull-requests)
 * `gh-notification` requires a `githubToken` to be configured in `SECRETS`.
 
 ## Example
