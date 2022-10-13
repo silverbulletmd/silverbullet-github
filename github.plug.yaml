@@ -1,4 +1,6 @@
 name: github
+imports:
+  - https://get.silverbullet.md/global.plug.json
 functions:
   queryEvents:
     path: ./github.ts:queryEvents

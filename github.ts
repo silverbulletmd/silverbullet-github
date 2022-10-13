@@ -1,8 +1,5 @@
-import {
-  applyQuery,
-  QueryProviderEvent,
-} from "@silverbulletmd/plugs/query/engine";
-import { GithubApi } from "./api";
+import { applyQuery, QueryProviderEvent } from "$sb/plugs/query/engine.ts";
+import { GithubApi } from "./api.ts";
 
 export async function queryEvents({
   query,
@@ -21,16 +18,18 @@ export async function queryEvents({
     throw new Error(`Unsupported operator ${usernameFilter.op}`);
   }
   let allEvents: any[] = [];
-  for (let eventList of await Promise.all(
-    usernames.map((username) => api.listEvents(username))
-  )) {
+  for (
+    let eventList of await Promise.all(
+      usernames.map((username) => api.listEvents(username)),
+    )
+  ) {
     allEvents.push(...eventList);
   }
   query.filter.splice(query.filter.indexOf(usernameFilter), 1);
 
   return applyQuery(
     query,
-    allEvents.map((e) => flattenObject(e))
+    allEvents.map((e) => flattenObject(e)),
   );
 }
 
@@ -52,14 +51,16 @@ export async function queryPulls({
     throw new Error(`Unsupported operator ${repo.op}`);
   }
   let allPulls: any[] = [];
-  for (let pullList of await Promise.all(
-    repos.map((repo) => api.listPulls(repo, "all", "updated"))
-  )) {
+  for (
+    let pullList of await Promise.all(
+      repos.map((repo) => api.listPulls(repo, "all", "updated")),
+    )
+  ) {
     allPulls.push(...pullList);
   }
   allPulls = applyQuery(
     query,
-    allPulls.map((p) => flattenObject(p))
+    allPulls.map((p) => flattenObject(p)),
   );
   return allPulls;
 }
@@ -71,7 +72,7 @@ export async function queryNotifications({
   let allNotifications = await api.listNotifications();
   allNotifications = applyQuery(
     query,
-    allNotifications.map((n) => flattenObject(n))
+    allNotifications.map((n) => flattenObject(n)),
   );
   return allNotifications;
 }
