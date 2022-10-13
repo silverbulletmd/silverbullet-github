@@ -4,11 +4,12 @@ import { GithubApi } from "./api.ts";
 export async function queryEvents({
   query,
 }: QueryProviderEvent): Promise<any[]> {
-  let api = await GithubApi.fromConfig();
-  let usernameFilter = query.filter.find((f) => f.prop === "username");
+  const api = await GithubApi.fromConfig();
+  const usernameFilter = query.filter.find((f) => f.prop === "username");
   if (!usernameFilter) {
     throw Error("No 'username' filter specified, this is mandatory");
   }
+
   let usernames: string[] = [];
   if (usernameFilter.op === "=") {
     usernames = [usernameFilter.value];
@@ -17,9 +18,9 @@ export async function queryEvents({
   } else {
     throw new Error(`Unsupported operator ${usernameFilter.op}`);
   }
-  let allEvents: any[] = [];
+  const allEvents: any[] = [];
   for (
-    let eventList of await Promise.all(
+    const eventList of await Promise.all(
       usernames.map((username) => api.listEvents(username)),
     )
   ) {
@@ -75,6 +76,32 @@ export async function queryNotifications({
     allNotifications.map((n) => flattenObject(n)),
   );
   return allNotifications;
+}
+
+export async function querySearchIssues({
+  query,
+}: QueryProviderEvent): Promise<any[]> {
+  let api = await GithubApi.fromConfig();
+
+  let queryFilter = query.filter.find((f) => f.prop === "query");
+  if (!queryFilter) {
+    throw Error("No 'query' specified, this is mandatory");
+  }
+  query.filter = query.filter.filter((f) => f.prop !== "query");
+
+  let q = "";
+  if (queryFilter.op === "=") {
+    q = queryFilter.value;
+  } else {
+    throw new Error(`Unsupported operator ${queryFilter.op}`);
+  }
+
+  const searchResult = await api.searchIssues(q);
+  const result = applyQuery(
+    query,
+    searchResult.items.map((n) => flattenObject(n)),
+  );
+  return result;
 }
 
 function flattenObject(obj: any, prefix = ""): any {

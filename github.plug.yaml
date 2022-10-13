@@ -14,3 +14,7 @@ functions:
     path: ./github.ts:queryNotifications
     events:
       - query:gh-notification
+  querySearchIssues:
+    path: ./github.ts:querySearchIssues
+    events:
+      - query:gh-search-issue

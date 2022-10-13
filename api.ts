@@ -41,6 +41,17 @@ export class GithubApi {
     );
   }
 
+  searchIssues(
+    query: string,
+    sort = "",
+  ): Promise<{ items: any[] }> {
+    query = encodeURIComponent(query);
+
+    return this.apiCall(
+      `https://api.github.com/search/issues?q=${query}&sort=${sort}&direction=desc&per_page=100`,
+    );
+  }
+
   listNotifications(): Promise<any[]> {
     return this.apiCall(`https://api.github.com/notifications?per_page=100`);
   }
