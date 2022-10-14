@@ -1,4 +1,4 @@
-import { readSecrets } from "$sb/plugs/lib/secrets_page.ts";
+import { readSecrets } from "$sb/lib/secrets_page.ts";
 
 export async function getToken(): Promise<string | undefined> {
   try {

@@ -1,4 +1,5 @@
-import { applyQuery, QueryProviderEvent } from "$sb/plugs/query/engine.ts";
+import type { QueryProviderEvent } from "$sb/app_event.ts";
+import { applyQuery } from "$sb/lib/query.ts";
 import { GithubApi } from "./api.ts";
 
 export async function queryEvents({
@@ -53,7 +54,7 @@ export async function queryPulls({
   }
   let allPulls: any[] = [];
   for (
-    let pullList of await Promise.all(
+    const pullList of await Promise.all(
       repos.map((repo) => api.listPulls(repo, "all", "updated")),
     )
   ) {
