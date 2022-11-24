@@ -18,3 +18,31 @@ functions:
     path: ./github.ts:querySearchIssues
     events:
       - query:gh-search-issue
+
+  # Gist publishing
+  shareGistCommand:
+    path: ./github.ts:shareGistCommand
+    command:
+      name: "Share: Gist: Public Gist"
+  loadGistCommand:
+    path: ./github.ts:loadGistCommand
+    command:
+      name: "Share: Gist: Load"
+  openGistCommand:
+    path: ./github.ts:openGistCommand
+    command:
+      name: "Share: Gist: Open In Browser"
+
+  ## Server side calls invoked from commands
+  createGist:
+    path: ./github.ts:createGist
+    env: server
+  updateGist:
+    path: ./github.ts:updateGist
+    env: server
+    events:
+      # For `Share: Publish` command
+      - share:gh-gist
+  getGist:
+    path: ./github.ts:getGist
+    env: server

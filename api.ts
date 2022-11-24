@@ -4,7 +4,7 @@ export async function getToken(): Promise<string | undefined> {
   try {
     const [token] = await readSecrets(["githubToken"]);
     return token;
-  } catch (e) {
+  } catch {
     console.error("No github-config page found, using default config");
     return undefined;
   }
@@ -19,7 +19,7 @@ export class GithubApi {
         Authorization: this.token ? `token ${this.token}` : undefined,
       },
     });
-    if (res.status !== 200) {
+    if (res.status < 200 || res.status >= 300) {
       throw new Error(await res.text());
     }
     return res.json();
@@ -54,6 +54,43 @@ export class GithubApi {
 
   listNotifications(): Promise<any[]> {
     return this.apiCall(`https://api.github.com/notifications?per_page=100`);
+  }
+
+  async createGist(
+    description: string,
+    isPublic: boolean,
+    files: Record<string, { content: string }>,
+  ): Promise<string> {
+    const result = await this.apiCall(`https://api.github.com/gists`, {
+      method: "POST",
+      body: JSON.stringify({
+        description,
+        public: isPublic,
+        files,
+      }),
+    });
+    return result.id;
+  }
+
+  updateGist(
+    id: string,
+    description: string,
+    isPublic: boolean,
+    files: Record<string, { content: string }>,
+  ) {
+    return this.apiCall(`https://api.github.com/gists/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        description,
+        public: isPublic,
+        files,
+      }),
+    });
+  }
+
+  async getGist(id: string): Promise<Record<string, any>> {
+    const resp = await this.apiCall(`https://api.github.com/gists/${id}`);
+    return resp.files;
   }
 
   static async fromConfig(): Promise<GithubApi> {
