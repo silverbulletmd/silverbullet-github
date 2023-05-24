@@ -1,6 +1,6 @@
 name: github
-imports:
-  - https://get.silverbullet.md/global.plug.json
+requiredPermissions:
+  - fetch
 functions:
   queryEvents:
     path: ./github.ts:queryEvents
