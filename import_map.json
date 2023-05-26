@@ -1,7 +1,6 @@
 {
   "imports": {
     "$sb/": "../silverbullet/plug-api/",
-    "handlebars": "https://esm.sh/handlebars",
     "yaml": "https://deno.land/std@0.184.0/yaml/mod.ts"
   }
 }
