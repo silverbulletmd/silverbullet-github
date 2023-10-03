@@ -1,5 +1,9 @@
 import type { PublishEvent, QueryProviderEvent } from "$sb/app_event.ts";
-import { applyQuery } from "$sb/lib/query.ts";
+import {
+  applyQuery,
+  evalQueryExpression,
+  liftAttributeFilter,
+} from "$sb/lib/query.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 import {
   editor,
@@ -17,28 +21,13 @@ export async function queryEvents({
   query,
 }: QueryProviderEvent): Promise<any[]> {
   const api = await GithubApi.fromConfig();
-  const usernameFilter = query.filter.find((f) => f.prop === "username");
+  const usernameFilter = liftAttributeFilter(query.filter, "username");
   if (!usernameFilter) {
     throw Error("No 'username' filter specified, this is mandatory");
   }
 
-  let usernames: string[] = [];
-  if (usernameFilter.op === "=") {
-    usernames = [usernameFilter.value];
-  } else if (usernameFilter.op === "in") {
-    usernames = usernameFilter.value;
-  } else {
-    throw new Error(`Unsupported operator ${usernameFilter.op}`);
-  }
-  const allEvents: any[] = [];
-  for (
-    const eventList of await Promise.all(
-      usernames.map((username) => api.listEvents(username)),
-    )
-  ) {
-    allEvents.push(...eventList);
-  }
-  query.filter.splice(query.filter.indexOf(usernameFilter), 1);
+  const username: string = evalQueryExpression(usernameFilter, {});
+  const allEvents: any[] = await api.listEvents(username);
 
   return applyQuery(
     query,
@@ -49,28 +38,13 @@ export async function queryEvents({
 export async function queryPulls({
   query,
 }: QueryProviderEvent): Promise<any[]> {
-  let api = await GithubApi.fromConfig();
-  let repo = query.filter.find((f) => f.prop === "repo");
-  if (!repo) {
+  const api = await GithubApi.fromConfig();
+  const repoFilter = liftAttributeFilter(query.filter, "repo");
+  if (!repoFilter) {
     throw Error("No 'repo' specified, this is mandatory");
   }
-  query.filter.splice(query.filter.indexOf(repo), 1);
-  let repos: string[] = [];
-  if (repo.op === "=") {
-    repos = [repo.value];
-  } else if (repo.op === "in") {
-    repos = repo.value;
-  } else {
-    throw new Error(`Unsupported operator ${repo.op}`);
-  }
-  let allPulls: any[] = [];
-  for (
-    const pullList of await Promise.all(
-      repos.map((repo) => api.listPulls(repo, "all", "updated")),
-    )
-  ) {
-    allPulls.push(...pullList);
-  }
+  const repo: string = evalQueryExpression(repoFilter, {});
+  let allPulls: any[] = await api.listPulls(repo, "all", "updated");
   allPulls = applyQuery(
     query,
     allPulls.map((p) => flattenObject(p)),
@@ -81,7 +55,7 @@ export async function queryPulls({
 export async function queryNotifications({
   query,
 }: QueryProviderEvent): Promise<any[]> {
-  let api = await GithubApi.fromConfig();
+  const api = await GithubApi.fromConfig();
   let allNotifications = await api.listNotifications();
   allNotifications = applyQuery(
     query,
@@ -93,20 +67,14 @@ export async function queryNotifications({
 export async function querySearchIssues({
   query,
 }: QueryProviderEvent): Promise<any[]> {
-  let api = await GithubApi.fromConfig();
+  const api = await GithubApi.fromConfig();
 
-  let queryFilter = query.filter.find((f) => f.prop === "query");
+  const queryFilter = liftAttributeFilter(query.filter, "query");
   if (!queryFilter) {
     throw Error("No 'query' specified, this is mandatory");
   }
-  query.filter = query.filter.filter((f) => f.prop !== "query");
 
-  let q = "";
-  if (queryFilter.op === "=") {
-    q = queryFilter.value;
-  } else {
-    throw new Error(`Unsupported operator ${queryFilter.op}`);
-  }
+  const q = evalQueryExpression(queryFilter, {});
 
   const searchResult = await api.searchIssues(q);
   const result = applyQuery(
@@ -135,7 +103,7 @@ export async function shareGistCommand() {
   const pageName = await editor.getCurrentPage();
   const text = await editor.getText();
   const tree = await markdown.parseMarkdown(text);
-  let { $share } = extractFrontmatter(tree, ["$share"]);
+  let { $share } = await extractFrontmatter(tree, ["$share"]);
   const cleanText = renderToText(tree);
 
   if (!$share) {
@@ -219,7 +187,7 @@ export async function loadGistCommand() {
 export async function openGistCommand() {
   const text = await editor.getText();
   const tree = await markdown.parseMarkdown(text);
-  const { $share } = extractFrontmatter(tree);
+  const { $share } = await extractFrontmatter(tree);
   if (!$share) {
     await editor.flashNotification("Not currently shared as gist", "error");
     return;
