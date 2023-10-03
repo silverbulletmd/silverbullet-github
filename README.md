@@ -40,14 +40,14 @@ To pull an *existing* gist into your space, use the {[Share: Gist: Load]} comman
 Example uses of the query providers:
 
     ## Recent pushes
-    <!-- #query gh-event where username = "zefhemel" and type = "PushEvent" select type, actor_login, created_at, payload_ref limit 3 -->
-
-    <!-- /query -->
+    ```query
+    gh-event where username = "zefhemel" and type = "PushEvent" select type, actor_login, created_at, payload_ref limit 3
+    ```
 
     ## Recent PRs
-    <!-- #query gh-pull where repo = "silverbulletmd/silverbullet" and user_login = "zefhemel" limit 3 render "template/gh-pull" -->
-
-    <!-- /query -->
+    ```query
+    gh-pull where repo = "silverbulletmd/silverbullet" and user_login = "zefhemel" limit 3 render [[template/gh-pull]]
+    ```
 
 Where the `template/gh-pull` looks as follows:
 
