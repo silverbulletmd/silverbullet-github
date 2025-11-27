@@ -1,4 +1,7 @@
 # SilverBullet plug for Github
+
+**IMPORTANT NOTE** This plug is 0.xx only and no longer maintained.
+
 Provides various integrations with Github:
 
 * Query sources for events, notifications and pull requests
